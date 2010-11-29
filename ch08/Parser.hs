@@ -1,6 +1,7 @@
 module Parser where
 
-import Prelude (Char, String, Monad(..))
+import Char
+import Monad
 
 newtype Parser a = P (String -> [(a, String)])
 
@@ -34,3 +35,54 @@ p1 = do
     item
     y <- item
     return (x, y)
+
+(+++) :: Parser a -> Parser a -> Parser a
+p +++ q = P (\inp -> case parse p inp of
+                        [] -> parse q inp
+                        [(v,out)] -> [(v,out)])
+
+sat :: (Char -> Bool) -> Parser Char
+sat p = do
+    x <- item
+    if p x then return x else failure
+
+digit, lower, upper, letter, alphanum :: Parser Char
+digit = sat isDigit
+lower = sat isLower
+upper = sat isUpper
+letter = sat isAlpha
+alphanum = sat isAlphaNum
+
+char :: Char -> Parser Char
+char x = sat (==x)
+
+string :: String -> Parser String
+string [] = return []
+string (x : xs) = do
+    char x
+    string xs
+    return (x : xs)
+
+many :: Parser a -> Parser [a]
+many p = many1 p +++ return []
+many1 :: Parser a -> Parser [a]
+many1 p = do
+    v <- p
+    vs <- many p
+    return (v : vs)
+
+ident :: Parser String
+ident = do
+    x <- lower
+    xs <- many alphanum
+    return (x : xs)
+
+nat :: Parser Int
+nat = do
+    xs <- many1 digit
+    return (read xs)
+
+space :: Parser ()
+space = do
+    many (sat isSpace)
+    return ()
