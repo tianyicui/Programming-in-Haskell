@@ -11,6 +11,10 @@ instance Monad Parser where
                             [] -> []
                             [(v,out)] -> parse (f v) out)
 
+instance MonadPlus Parser where
+    mzero = failure
+    mplus = (+++)
+
 failure :: Parser a
 failure = P (\inp -> [])
 
@@ -82,6 +86,13 @@ nat = do
     xs <- many1 digit
     return (read xs)
 
+int :: Parser Int
+int = do
+    char '-'
+    n <- nat
+    return (-n)
+  +++ nat
+
 space :: Parser ()
 space = do
     many (sat isSpace)
@@ -97,8 +108,9 @@ token p = do
 identifier :: Parser String
 identifier = token ident
 
-natural :: Parser Int
+natural, integer :: Parser Int
 natural = token nat
+integer = token int
 
 symbol :: String -> Parser String
 symbol xs = token (string xs)
@@ -111,4 +123,4 @@ intListParser = do
     ns <- many (do symbol ","
                    natural)
     symbol "]"
-    return (n:ns)
+    return (n : ns)
