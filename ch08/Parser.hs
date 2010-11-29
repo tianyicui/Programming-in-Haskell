@@ -86,3 +86,29 @@ space :: Parser ()
 space = do
     many (sat isSpace)
     return ()
+
+token :: Parser a -> Parser a
+token p = do
+    space
+    v <- p
+    space
+    return v
+
+identifier :: Parser String
+identifier = token ident
+
+natural :: Parser Int
+natural = token nat
+
+symbol :: String -> Parser String
+symbol xs = token (string xs)
+
+-- soooo powerful!
+intListParser :: Parser [Int]
+intListParser = do
+    symbol "["
+    n <- natural
+    ns <- many (do symbol ","
+                   natural)
+    symbol "]"
+    return (n:ns)
