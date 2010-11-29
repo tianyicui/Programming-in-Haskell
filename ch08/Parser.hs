@@ -1,27 +1,25 @@
 module Parser where
 
-import Prelude (Char, String)
+import Prelude (Char, String, Monad(..))
 
-type Parser a = String -> [(a, String)]
+newtype Parser a = P (String -> [(a, String)])
 
-return :: a -> Parser a
-return v = \inp -> [(v,inp)]
+instance Monad Parser where
+    return v = P (\inp -> [(v,inp)])
+    p >>= f = P (\inp -> case parse p inp of
+                            [] -> []
+                            [(v,out)] -> parse (f v) out)
 
 failure :: Parser a
-failure = \inp -> []
+failure = P (\inp -> [])
 
 item :: Parser Char
-item = \inp -> case inp of
-                    [] -> []
-                    (x : xs) -> [(x, xs)]
+item = P (\inp -> case inp of
+                     [] -> []
+                     (x : xs) -> [(x, xs)])
 
 parse :: Parser a -> String -> [(a, String)]
-parse p inp = p inp
-
-(>>=) :: Parser a -> (a -> Parser b) -> Parser b
-p >>= f = \inp -> case parse p inp of
-                       [] -> []
-                       [(v,out)] -> parse (f v) out
+parse (P p) inp = p inp
 
 p0 :: Parser (Char, Char)
 p0 =
@@ -29,9 +27,8 @@ p0 =
     item >>= \_ ->
     item >>= \y ->
     return (x, y)
-
 -- is equivalent to
--- p1 :: Parser (Char, Char)
+p1 :: Parser (Char, Char)
 p1 = do
     x <- item
     item
